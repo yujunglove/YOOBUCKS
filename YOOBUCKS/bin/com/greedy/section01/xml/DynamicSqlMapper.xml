@@ -1,0 +1,153 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.greedy.section01.xml.DynamicSqlMapper">
+  
+  <resultMap type="com.greedy.common.MenuDTO" id="menuResultMap">
+  	<id property="menuCode" column="MENU_CODE"/>
+  	<result property="menuName" column="MENU_NAME"/>
+  	<result property="menuPrice" column="MENU_PRICE"/>
+  	<result property="categoryCode" column="CATEGORY_CODE"/>
+  	<result property="orderableStatus" column="ORDERABLE_STATUS"/>
+  </resultMap>
+  
+  <select id="selectAllMenuCode"  parameterType= "hashmap" resultMap="menuResultMap">
+    SELECT
+           MENU_CODE
+         , MENU_NAME
+         , MENU_PRICE
+         , CATEGORY_CODE
+         , ORDERABLE_STATUS
+      FROM YOO_MENU
+     WHERE ORDERABLE_STATUS = 'Y'
+     ORDER BY MENU_CODE
+  </select>
+
+
+  <select id="selectMenuByPrice" parameterType= "hashmap" resultMap="menuResultMap">
+    SELECT
+           MENU_CODE
+         , MENU_NAME
+         , MENU_PRICE
+         , CATEGORY_CODE
+         , ORDERABLE_STATUS
+      FROM YOO_MENU
+     WHERE ORDERABLE_STATUS = 'Y'
+     <if test="price gte 0 and price lte 10000">
+     <!-- < 이걸 쓰려면 CDATA 써야함   -->
+     <![CDATA[
+     	AND MENU_PRICE  < #{ price }
+     ]]>
+     	</if>
+     	<if test="price gt 0 and price lte 20000">
+     	AND MENU_PRICE BETWEEN 10000 AND #{ price }
+     	</if>
+     	<if test="price gt 20000 and price lte 30000">
+     	AND MENU_PRICE BETWEEN 20000 AND #{ price }
+     	</if>
+     ORDER BY MENU_CODE
+  </select>
+  
+  <select id="searchMenu" parameterType="SearchCriteria" resultMap="menuResultMap">
+	SELECT
+        MENU_CODE
+       , MENU_NAME
+       , MENU_PRICE
+       , CATEGORY_CODE
+       , ORDERABLE_STATUS
+    FROM YOO_MENU
+   <if test="condition == 'category'">
+   JOIN YOO_CATEGORY USING (CATEGORY_CODE)
+   </if>
+   WHERE ORDERABLE_STATUS = 'Y'
+   <if test="condition == 'name'">
+   AND MENU_NAME LIKE '%' || #{ value } || '%'
+   </if>
+   <if test="condition == 'category'">
+   AND CATEGORY_NAME = #{ value }
+   </if>
+   ORDER BY MENU_CODE
+   </select>
+   
+ <select id="searchMenuByRandomMenuCode" parameterType="hashmap" resultMap="menuResultMap">
+    SELECT
+           MENU_CODE
+         , MENU_NAME
+         , MENU_PRICE
+         , CATEGORY_CODE
+         , ORDERABLE_STATUS
+      FROM YOO_MENU  
+     WHERE ORDERABLE_STATUS = 'Y'  
+       AND MENU_CODE IN
+     <foreach collection="randomMenuCodeList" item="menuCode" open="(" separator="," close=")">
+     	#{ menuCode }
+     </foreach>
+  </select>
+  
+  
+  <select id="searchMenuByNameOrCategory" parameterType="hashmap" resultMap="menuResultMap">
+		SELECT
+        MENU_CODE
+       , MENU_NAME
+       , MENU_PRICE
+       , CATEGORY_CODE
+       , ORDERABLE_STATUS
+    FROM YOO_MENU
+
+  	<trim prefix="WHERE" prefixOverrides="AND | OR">
+  <if test="nameValue != null">
+  MENU_NAME LIKE '%' || #{ nameValue } || '%'
+  </if>
+  <if test="categoryValue != null">
+  AND CATEGORY_CODE = #{ categoryValue }
+  </if>
+  	</trim>
+  	
+  	
+    </select>
+    
+   <update id="modifyMenu" parameterType="hashmap">
+
+    UPDATE
+  	       YOO_MENU
+  	<trim prefix="SET" prefixOverrides=",">
+	    <if test="name != null and name != ''">
+	  	   MENU_NAME = #{ name }    
+	    </if>
+	    <if test="categoryCode != null and categoryCode gt 0">
+	         , CATEGORY_CODE = #{ categoryCode }    
+	    </if>
+		<if test="orderableStatus != null and orderableStatus != ''">
+	         , ORDERABLE_STATUS = #{ orderableStatus }
+	    </if>
+    </trim>
+     WHERE MENU_CODE = #{ code }  
+  </update>
+  
+      
+   <insert id="registMenu" parameterType="hashmap">
+  	INSERT
+  	  INTO YOO_MENU
+  	(
+  	  MENU_CODE
+  	, MENU_NAME
+  	, MENU_PRICE
+  	, CATEGORY_CODE
+  	)
+  	VALUES
+  	(
+  	  SEQ_MENU_CODE.NEXTVAL
+  	  #{ menuCode }
+  	, #{ menuName }
+  	, #{ menuPrice}
+  	, #{ categoryCode }
+  	)
+  </insert>
+  
+  
+
+
+    
+</mapper>
